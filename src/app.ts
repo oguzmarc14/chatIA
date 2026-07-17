@@ -1,4 +1,5 @@
 import express, { type Request } from "express";
+import { legalRouter } from "./routes/legal.routes.js";
 import { webhookRouter } from "./routes/webhook.routes.js";
 
 export const app = express();
@@ -21,4 +22,6 @@ app.get("/", (_request, response) => {
 });
 
 app.use("/webhook", webhookRouter);
+app.use(legalRouter);
+
 export default app;
