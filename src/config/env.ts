@@ -3,8 +3,13 @@ import { z } from "zod";
 
 const optionalEnvironmentSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
-  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  META_APP_SECRET: z.string().min(1).optional(),
+  NODE_ENV: z
+    .enum(["development", "test", "production"])
+    .default("development"),
+  META_APP_SECRET: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.string().min(1).optional(),
+  ),
 });
 
 const result = optionalEnvironmentSchema.safeParse(process.env);
@@ -24,4 +29,3 @@ export function requireEnvironment(name: string): string {
 
   return value;
 }
-

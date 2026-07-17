@@ -21,3 +21,4 @@ app.get("/", (_request, response) => {
 });
 
 app.use("/webhook", webhookRouter);
+export default app;
