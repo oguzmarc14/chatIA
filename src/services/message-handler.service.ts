@@ -43,13 +43,19 @@ export async function processWebhook(
       phoneNumberId: message.phoneNumberId,
     });
 
-    await sendTextMessage({
-      to: message.from,
-      phoneNumberId: message.phoneNumberId,
-      text: "¡Hola! 👋 Soy el asistente virtual. Recibí tu mensaje correctamente. ¿En qué podemos ayudarte?",
-    });
+    try {
+      await sendTextMessage({
+        to: message.from,
+        phoneNumberId: message.phoneNumberId,
+        text: "¡Hola! 👋 Soy el asistente virtual. Recibí tu mensaje correctamente. ¿En qué podemos ayudarte?",
+      });
+    } catch (error) {
+      console.error(
+        "No se pudo enviar la respuesta automática",
+        error instanceof Error ? error.message : "Error desconocido",
+      );
+    }
   }
 
   return messages.length;
 }
-

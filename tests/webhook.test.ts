@@ -2,6 +2,8 @@ import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 beforeEach(() => {
+  process.env.META_APP_SECRET = "";
+
   process.env.WEBHOOK_VERIFY_TOKEN = "token-de-prueba";
   process.env.WHATSAPP_ACCESS_TOKEN = "access-token-de-prueba";
   process.env.META_GRAPH_API_VERSION = "v23.0";
