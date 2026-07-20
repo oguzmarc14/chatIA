@@ -1,15 +1,32 @@
 import request from "supertest";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
+
+const generateAssistantReplyMock = vi.fn();
+
+vi.mock("../src/services/ai.service.js", () => ({
+  generateAssistantReply: generateAssistantReplyMock,
+}));
 
 beforeEach(() => {
   process.env.META_APP_SECRET = "";
-
   process.env.WEBHOOK_VERIFY_TOKEN = "token-de-prueba";
   process.env.WHATSAPP_ACCESS_TOKEN = "access-token-de-prueba";
   process.env.META_GRAPH_API_VERSION = "v23.0";
+
+  generateAssistantReplyMock.mockResolvedValue(
+    "¡Hola! Soy el asistente inteligente.",
+  );
 });
 
 afterEach(() => {
+  vi.clearAllMocks();
   vi.unstubAllGlobals();
 });
 
@@ -39,16 +56,25 @@ describe("WhatsApp webhook", () => {
     expect(response.status).toBe(403);
   });
 
-  it("recibe un texto y responde mediante Cloud API", async () => {
+  it("recibe un texto, consulta la IA y responde mediante Cloud API", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ messages: [{ id: "wamid.respuesta" }] }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
+      new Response(
+        JSON.stringify({
+          messages: [{ id: "wamid.respuesta" }],
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      ),
     );
+
     vi.stubGlobal("fetch", fetchMock);
 
     const { app } = await import("../src/app.js");
+
     const response = await request(app)
       .post("/webhook")
       .send({
@@ -59,13 +85,17 @@ describe("WhatsApp webhook", () => {
               {
                 field: "messages",
                 value: {
-                  metadata: { phone_number_id: "123456789" },
+                  metadata: {
+                    phone_number_id: "123456789",
+                  },
                   messages: [
                     {
                       id: "wamid.mensaje",
                       from: "521234567890",
                       type: "text",
-                      text: { body: "Hola" },
+                      text: {
+                        body: "Hola",
+                      },
                     },
                   ],
                 },
@@ -77,10 +107,20 @@ describe("WhatsApp webhook", () => {
 
     expect(response.status).toBe(200);
     expect(response.body.processedMessages).toBe(1);
+
+    expect(generateAssistantReplyMock).toHaveBeenCalledOnce();
+    expect(generateAssistantReplyMock).toHaveBeenCalledWith("Hola");
+
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(fetchMock.mock.calls[0]?.[0]).toBe(
       "https://graph.facebook.com/v23.0/123456789/messages",
     );
+
+    const requestOptions = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    const requestBody = JSON.parse(String(requestOptions.body));
+
+    expect(requestBody.text.body).toBe(
+      "¡Hola! Soy el asistente inteligente.",
+    );
   });
 });
-

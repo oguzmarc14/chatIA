@@ -2,6 +2,7 @@ import type {
   IncomingTextMessage,
   WhatsAppWebhookPayload,
 } from "../types/whatsapp.js";
+import { generateAssistantReply } from "./ai.service.js";
 import { sendTextMessage } from "./whatsapp.service.js";
 
 export function extractTextMessages(
@@ -44,14 +45,20 @@ export async function processWebhook(
     });
 
     try {
+      const assistantReply = await generateAssistantReply(message.text);
+
       await sendTextMessage({
         to: message.from,
         phoneNumberId: message.phoneNumberId,
-        text: "¡Hola! 👋 Soy el asistente virtual. Recibí tu mensaje correctamente. ¿En qué podemos ayudarte?",
+        text: assistantReply,
+      });
+
+      console.info("Respuesta inteligente enviada", {
+        messageId: message.messageId,
       });
     } catch (error) {
       console.error(
-        "No se pudo enviar la respuesta automática",
+        "No se pudo generar o enviar la respuesta",
         error instanceof Error ? error.message : "Error desconocido",
       );
     }
