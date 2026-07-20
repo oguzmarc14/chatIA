@@ -14,6 +14,18 @@ interface MetaErrorResponse {
   };
 }
 
+function normalizeWhatsAppNumber(number: string): string {
+  const digits = number.replace(/\D/g, "");
+
+  // Meta entrega algunos números mexicanos como 521XXXXXXXXXX,
+  // pero el envío requiere el formato 52XXXXXXXXXX.
+  if (digits.startsWith("521") && digits.length === 13) {
+    return `52${digits.slice(3)}`;
+  }
+
+  return digits;
+}
+
 export async function sendTextMessage({
   to,
   text,
@@ -22,6 +34,8 @@ export async function sendTextMessage({
   const accessToken = requireEnvironment("WHATSAPP_ACCESS_TOKEN");
   const graphVersion = requireEnvironment("META_GRAPH_API_VERSION");
   const url = `https://graph.facebook.com/${graphVersion}/${phoneNumberId}/messages`;
+
+  const normalizedRecipient = normalizeWhatsAppNumber(to);
 
   const response = await fetch(url, {
     method: "POST",
@@ -32,7 +46,7 @@ export async function sendTextMessage({
     body: JSON.stringify({
       messaging_product: "whatsapp",
       recipient_type: "individual",
-      to,
+      to: normalizedRecipient,
       type: "text",
       text: {
         preview_url: false,
@@ -44,7 +58,7 @@ export async function sendTextMessage({
   if (!response.ok) {
     const data = (await response.json().catch(() => ({}))) as MetaErrorResponse;
     const message = data.error?.message ?? `Error HTTP ${response.status}`;
+
     throw new Error(`Meta no pudo enviar el mensaje: ${message}`);
   }
 }
-
